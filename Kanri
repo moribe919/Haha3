@@ -1,399 +1,82 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, Trash2, Truck, User, Package, AlertTriangle, ShoppingCart } from "lucide-react";
-
-/**
- * InventoryManager – 改善版デザイン
- * モダンなUI、色分け、アイコン、レスポンシブ対応
- */
-
-const STORAGE_KEY = 'inv_items_v3';
-
-const RESIDENTS = Array.from({ length: 60 }, (_, i) => ({
-  id: `r${i + 1}`,
-  name: `利用者${String(i + 1).padStart(2, '0')}`,
-}));
-
-const DIAPER_TYPES = [
-  'Mテープ',
-  'Lテープ',
-  'LLテープ',
-  'Mパンツ',
-  'Lパンツ',
-  '尿取りパッド小',
-  '尿取りパッド大',
-  'おしりふき',
-  '防水シーツ',
-  'その他',
-] as const;
-
-interface Item {
-  id: string;
-  residentId: string;
-  name: string;
-  category: string;
-  quantity: number;
-  used: number;
-  min: number;
-  source: '購入' | 'サンプル';
-}
-
-export default function InventoryManager() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [selectedResident, setSelectedResident] = useState<string>(RESIDENTS[0].id);
-  const [newName, setNewName] = useState('');
-  const [newQty, setNewQty] = useState<number>(0);
-  const [newMin, setNewMin] = useState<number>(0);
-  const [newSource, setNewSource] = useState<'購入' | 'サンプル'>('購入');
-  const [purchaseInputs, setPurchaseInputs] = useState<Record<string, string>>({});
-
-  // Load / Save
-  useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        setItems(JSON.parse(raw));
-      } catch {
-        console.warn('parse failed – clearing');
-        localStorage.removeItem(STORAGE_KEY);
-      }
+{
+  "name": "shift-scheduler",
+  "version": "1.0.0",
+  "description": "自動シフト作成システム - 従業員の条件や制約を考慮した最適なシフト表生成",
+  "keywords": [
+    "shift",
+    "schedule",
+    "employee",
+    "management",
+    "react",
+    "tailwindcss",
+    "workplace"
+  ],
+  "homepage": "https://github.com/yourusername/shift-scheduler#readme",
+  "bugs": {
+    "url": "https://github.com/yourusername/shift-scheduler/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/shift-scheduler.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com",
+    "url": "https://github.com/yourusername"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "serve": "serve -s build",
+    "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}",
+    "lint": "eslint src/**/*.{js,jsx,ts,tsx}",
+    "lint:fix": "eslint src/**/*.{js,jsx,ts,tsx} --fix"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "lucide-react": "^0.263.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.3",
+    "autoprefixer": "^10.4.14",
+    "eslint": "^8.43.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.24",
+    "prettier": "^2.8.8",
+    "serve": "^14.2.0",
+    "tailwindcss": "^3.3.2"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "no-unused-vars": "warn",
+      "no-console": "warn"
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
-
-  // Helpers
-  const addItem = () => {
-    if (!newName.trim()) return;
-    const item: Item = {
-      id: crypto.randomUUID(),
-      residentId: selectedResident,
-      name: newName.trim(),
-      category: 'おむつ',
-      quantity: newQty,
-      used: 0,
-      min: newMin,
-      source: newSource,
-    };
-    setItems(prev => [...prev, item]);
-    setNewName('');
-    setNewQty(0);
-    setNewMin(0);
-  };
-
-  const updateQty = (id: string, delta: number) => {
-    setItems(prev => prev.map(it => (it.id === id ? { ...it, quantity: Math.max(0, it.quantity + delta) } : it)));
-  };
-
-  const updateUsed = (id: string, delta: number) => {
-    setItems(prev => prev.map(it => (it.id === id ? { ...it, used: Math.max(0, it.used + delta) } : it)));
-  };
-
-  const deleteItem = (id: string) => setItems(prev => prev.filter(it => it.id !== id));
-
-  const handlePurchase = (id: string) => {
-    const val = parseInt(purchaseInputs[id] || '0', 10);
-    if (!val) return;
-    setItems(prev => prev.map(it => (it.id === id ? { ...it, quantity: it.quantity + val } : it)));
-    setPurchaseInputs(prev => ({ ...prev, [id]: '' }));
-  };
-
-  const residentItems = items.filter(i => i.residentId === selectedResident);
-  const selectedResidentName = RESIDENTS.find(r => r.id === selectedResident)?.name || '';
-  const lowStockItems = residentItems.filter(i => i.quantity <= i.min);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center py-6">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">在庫・使用量管理システム</h1>
-          <p className="text-gray-600">効率的な在庫管理で安心なケアを</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">総在庫アイテム</p>
-                  <p className="text-2xl font-bold text-blue-600">{residentItems.length}</p>
-                </div>
-                <Package className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">在庫僅少アイテム</p>
-                  <p className="text-2xl font-bold text-red-600">{lowStockItems.length}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-red-500" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white shadow-lg border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">総使用数</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {residentItems.reduce((sum, item) => sum + item.used, 0)}
-                  </p>
-                </div>
-                <User className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Resident selector */}
-        <Card className="bg-white shadow-lg border-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="w-5 h-5 text-blue-500" />
-              利用者選択
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <select
-                className="flex-1 border-2 border-gray-200 rounded-lg p-3 text-lg focus:border-blue-500 focus:outline-none transition-colors"
-                value={selectedResident}
-                onChange={e => setSelectedResident(e.target.value)}
-              >
-                {RESIDENTS.map(r => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-              <Badge variant="secondary" className="text-sm px-3 py-1">
-                {selectedResidentName}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Add new stock */}
-        <Card className="bg-white shadow-lg border-0">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShoppingCart className="w-5 h-5 text-green-500" />
-              新しい在庫を追加
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">品名</label>
-                <Input
-                  list="diaper-list"
-                  placeholder="品名を入力"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  className="border-2 focus:border-blue-500"
-                />
-                <datalist id="diaper-list">
-                  {DIAPER_TYPES.map(t => (
-                    <option key={t} value={t} />
-                  ))}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">初期数量</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={newQty}
-                  onChange={e => setNewQty(parseInt(e.target.value || '0', 10))}
-                  className="border-2 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">最小在庫</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={newMin}
-                  onChange={e => setNewMin(parseInt(e.target.value || '0', 10))}
-                  className="border-2 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">種別</label>
-                <select
-                  className="w-full border-2 border-gray-200 rounded-md p-2 focus:border-blue-500 focus:outline-none"
-                  value={newSource}
-                  onChange={e => setNewSource(e.target.value as '購入' | 'サンプル')}
-                >
-                  <option value="購入">購入</option>
-                  <option value="サンプル">サンプル</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={addItem} 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={!newName.trim()}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  追加
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Item list */}
-        <div className="space-y-4">
-          {residentItems.length === 0 ? (
-            <Card className="bg-white shadow-lg border-0">
-              <CardContent className="p-12 text-center">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">この利用者の在庫がまだ登録されていません</p>
-                <p className="text-gray-400">上のフォームから在庫を追加してください</p>
-              </CardContent>
-            </Card>
-          ) : (
-            residentItems.map(i => (
-              <Card
-                key={i.id}
-                className={`bg-white shadow-lg border-0 transition-all hover:shadow-xl ${
-                  i.quantity <= i.min ? 'ring-2 ring-red-200 bg-red-50' : ''
-                }`}
-              >
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                    {/* Item info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-semibold text-gray-800">{i.name}</h3>
-                        <Badge 
-                          variant={i.source === '購入' ? 'default' : 'secondary'}
-                          className={i.source === '購入' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}
-                        >
-                          {i.source}
-                        </Badge>
-                        {i.quantity <= i.min && (
-                          <Badge variant="destructive" className="bg-red-100 text-red-800 animate-pulse">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            在庫僅少
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center">
-                          <span className="text-gray-600 mr-2">在庫数:</span>
-                          <span className={`font-bold text-lg ${i.quantity <= i.min ? 'text-red-600' : 'text-blue-600'}`}>
-                            {i.quantity}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="text-gray-600 mr-2">使用数:</span>
-                          <span className="font-bold text-lg text-green-600">{i.used}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="text-gray-600 mr-2">最小在庫:</span>
-                          <span className="font-bold text-lg text-gray-600">{i.min}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Controls */}
-                    <div className="flex flex-wrap items-center gap-2 lg:ml-6">
-                      {/* Stock controls */}
-                      <div className="flex items-center gap-1 bg-blue-50 rounded-lg p-1">
-                        <span className="text-xs text-blue-600 font-medium px-2">在庫</span>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => updateQty(i.id, -1)}
-                          className="h-8 w-8 p-0 hover:bg-red-100"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => updateQty(i.id, 1)}
-                          className="h-8 w-8 p-0 hover:bg-green-100"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-
-                      {/* Usage controls */}
-                      <div className="flex items-center gap-1 bg-green-50 rounded-lg p-1">
-                        <span className="text-xs text-green-600 font-medium px-2">使用</span>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => updateUsed(i.id, -1)}
-                          className="h-8 w-8 p-0 hover:bg-red-100"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => updateUsed(i.id, 1)}
-                          className="h-8 w-8 p-0 hover:bg-green-100"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-
-                      {/* Purchase input */}
-                      <div className="flex items-center gap-1 bg-orange-50 rounded-lg p-1">
-                        <Input
-                          type="number"
-                          className="w-20 h-8 text-sm border-orange-200 focus:border-orange-400"
-                          placeholder="仕入数"
-                          value={purchaseInputs[i.id] ?? ''}
-                          onChange={e =>
-                            setPurchaseInputs(prev => ({ ...prev, [i.id]: e.target.value }))
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handlePurchase(i.id)}
-                          disabled={!purchaseInputs[i.id]}
-                          className="h-8 w-8 p-0 bg-orange-500 hover:bg-orange-600"
-                        >
-                          <Truck className="w-3 h-3" />
-                        </Button>
-                      </div>
-
-                      {/* Delete */}
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        onClick={() => deleteItem(i.id)}
-                        className="h-8 w-8 p-0 bg-red-500 hover:bg-red-600"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
 }
